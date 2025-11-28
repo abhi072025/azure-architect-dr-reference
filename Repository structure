@@ -1,0 +1,49 @@
+azure-architect-dr-reference/
+├─ README.md
+├─  docs/
+│   ├─  architecture-dr.md
+│    ├─ decisions-adr/
+│    │   ├─  adr-0001-dr-topology.md
+│    │   ├─  adr-0002-sql-failover-group.md
+│   │    ├─  adr-0003-cosmos-multi-region.md
+│   │    └─  adr-0004-traffic-frontdoor.md
+│    └─  runbooks/
+│         ├─ failover-sql.md
+│         └─  failover-traffic.md
+├─  infra/
+│    └─  terraform/
+│         ├─ providers.tf
+│         ├─  variables.tf
+│         ├─  main.tf
+│         ├─  dr.tf
+│         ├─  frontdoor.tf
+│         └─ outputs.tf
+├─  src/
+│   ├─  services/
+│    │   ├─  orders/
+│   │    │    ├─ Dockerfile
+│    │   │    ├─  app.py
+│   │    │   └─  requirements.txt
+│    │   ├─  catalog/
+│   │    │    ├─ Dockerfile
+│    │   │    ├─  server.js
+│   │    │   └─  package.json
+│    │   └─  gateway/
+│   │         ├─  Dockerfile
+│    │         └─ nginx.conf
+│    └─  k8s/
+│         ├─  common/
+│         │    ├─ namespace.yaml
+│         │    ├─  orders.yaml
+│         │    ├─  catalog.yaml
+│         │   ├─  gateway.yaml
+│         │   └─  hpa-orders.yaml
+│         ├─  weu/
+│         │   └─  ingress.yaml
+│         └─  neu/
+│               └─  ingress.yaml
+├─  .azure-pipelines/
+│    └─ azure-pipelines.yaml
+└─  .github/
+     └─  workflows/
+           └─ pr-quality.yaml
