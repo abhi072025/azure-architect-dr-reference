@@ -1,0 +1,11 @@
+az  acr  login  --name  <ACR_NAME_PRIMARY>
+az  acr  login  --name  <ACR_NAME_SECONDARY>
+docker  build  -t  <ACR_NAME_PRIMARY>.azurecr.io/orders:1.0.0  src/services/orders
+docker  build  -t  <ACR_NAME_PRIMARY>.azurecr.io/catalog:1.0.0  src/services/catalog
+docker  build  -t  <ACR_NAME_PRIMARY>.azurecr.io/gateway:1.0.0  src/services/gateway
+docker  tag  <ACR_NAME_PRIMARY>.azurecr.io/orders:1.0.0  <ACR_NAME_SECONDARY>.azurecr.io/orders:1.0.0
+docker tag  <ACR_NAME_PRIMARY>.azurecr.io/catalog:1.0.0  <ACR_NAME_SECONDARY>.azurecr.io/catalog:1.0.0
+docker  tag <ACR_NAME_PRIMARY>.azurecr.io/gateway:1.0.0  <ACR_NAME_SECONDARY>.azurecr.io/gateway:1.0.0
+docker  push  <ACR_NAME_PRIMARY>.azurecr.io/orders:1.0.0 &&  docker  push  <ACR_NAME_SECONDARY>.azurecr.io/orders:1.0.0
+docker push  <ACR_NAME_PRIMARY>.azurecr.io/catalog:1.0.0  &&  docker  push <ACR_NAME_SECONDARY>.azurecr.io/catalog:1.0.0
+docker  push  <ACR_NAME_PRIMARY>.azurecr.io/gateway:1.0.0  && docker  push  <ACR_NAME_SECONDARY>.azurecr.io/gateway:1.0.0
