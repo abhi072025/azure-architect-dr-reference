@@ -1,0 +1,17 @@
+#  Primary
+az aks  get-credentials  -g  archdr-rg  -n archdr-aks  --overwrite-existing
+sed  -i  "s|<ACR_NAME>|<ACR_NAME_PRIMARY>|g" src/k8s/common/*.yaml
+kubectl  apply  -f  src/k8s/common
+kubectl  apply  -f  src/k8s/weu/ingress.yaml
+kubectl rollout  status  deploy/orders  -n  archref
+kubectl  rollout  status  deploy/catalog  -n archref
+kubectl  rollout  status  deploy/gateway -n  archref
+
+#  Secondary
+az  aks  get-credentials  -g  archdr-rg-dr -n  archdr-aks-dr  --overwrite-existing
+sed  -i "s|<ACR_NAME>|<ACR_NAME_SECONDARY>|g"  src/k8s/common/*.yaml
+kubectl  apply  -f src/k8s/common
+kubectl  apply  -f  src/k8s/neu/ingress.yaml
+kubectl  rollout  status  deploy/orders  -n archref
+kubectl  rollout  status  deploy/catalog -n  archref
+kubectl  rollout  status deploy/gateway  -n  archref
