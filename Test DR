@@ -1,0 +1,10 @@
+#Use Front Door URL: https://<prefix>-fd.azurefd.net
+
+#Kill primary gateway pods:
+
+az aks  get-credentials  -g  archdr-rg  -n archdr-aks
+ kubectl  scale deploy/gateway  -n  archref  --replicas=0
+
+
+
+#Confirm traffic flows to secondary; restore replicas to 2.
