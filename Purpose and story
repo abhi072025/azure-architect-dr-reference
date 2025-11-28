@@ -1,0 +1,74 @@
+#  Purpose  and  story
+
+ Imagine  your  online shop  has  customers  across Europe.  You  don’t  want the  site  to  go down  just  because  one Azure  region  has  an outage.  This  project  sets up  two  identical  environments in  two  nearby  Azure regions  and  a  smart global  “traffic  director”  that automatically  sends  customers  to whichever  environment  is  healthy. Your  data  is  also protected  so  orders  and product  info  keep  working even  if  a  region fails.  The  result  is a  resilient,  professional-grade  setup you  can  run,  demo, and  zip  up  to share.
+ 
+ ---
+ 
+#  What’s  included
+ 
+-  **Two  environments  (primary and  secondary):**  We  deploy the  same  app  in West  Europe  and  North Europe.  If  one  has trouble,  the  other  takes over.
+ -  **Global  traffic director  (Azure  Front  Door):** A  cloud  service  that checks  which  environment  is healthy  and  routes  customer requests  there  automatically.
+ - **App  gateway  security  (WAF):** Each  region  has  a “front  door”  with  web protection  to  block  common attacks  and  manage  incoming traffic.
+ -  **Modern  app platform  (AKS):**  The  app runs  as  small  containerized building  blocks  (microservices)  on Azure  Kubernetes  Service,  which makes  it  easy  to scale  and  update.
+ - **Two  simple  app  features:**
+    -  Orders (records  purchases  in  a SQL  database)
+    -  Catalog  (stores  product info  in  a  Cosmos DB  database)
+ -  **Resilient data:**
+     - Azure  SQL  Failover  Group: a  shared  connection  name that  automatically  switches  to the  secondary  database  if the  primary  fails.
+    -  Cosmos  DB with  multiple  regions  and automatic  failover:  product  reads continue  from  the  secondary region  when  needed.
+ - **Infrastructure  automation  (Terraform):**  One set  of  scripts  builds all  the  cloud  pieces consistently,  so  you  can recreate  the  system  anytime.
+-  **Deployment  pipelines  (CI/CD):** Steps  to  build  the app  and  deploy  it to  both  regions,  with checks  to  make  sure it’s  healthy.
+ -  **Runbooks (instructions):**  Short  “how-to”  guides to  rehearse  failover  safely.
+
+ ---
+ 
+ # How  it  works  day to  day
+ 
+ - **Normal  operations:**  Customers  visit your  shop.  Front  Door sees  both  regions  are healthy  and  usually  sends people  to  the  closest data  center.  The  app gateway  filters  traffic  and passes  it  into  the app  on  AKS.  Orders go  to  the  SQL database;  catalog  reads  use Cosmos  DB.  Everything  is monitored  with  health  checks.
+-  **Sudden  problem  in one  region:**  Let’s  say West  Europe  goes  down. Front  Door’s  health  checks notice  its  app  gateway isn’t  responding.  It  instantly routes  all  traffic  to North  Europe.  The  SQL Failover  Group  ensures  the order  system  keeps  working; Cosmos  automatically  serves  data from  North  Europe.  Customers won’t  notice  more  than a  slight  delay.
+ - **Recovery:**  When  West  Europe recovers,  the  system  can shift  traffic  back  smoothly. Databases  keep  data  synchronized, and  both  regions  return to  normal  service.
+ 
+---
+ 
+ #  Why these  choices  matter
+ 
+-  **Two  regions  instead of  one:**  Eliminates  single points  of  failure.  If one  region  is  unavailable, the  other  stays  open for  business.
+ -  **Front Door  health  checks:**  Automatic decision-making  during  incidents,  no manual  scramble.
+ -  **App gateways  with  WAF:**  Protects the  app  from  common web  threats  and  centralizes how  traffic  is  handled.
+-  **Containers  on  AKS:** Faster  updates,  better  scaling, less  downtime.  Each  microservice can  be  adjusted  without disrupting  the  whole  app.
+-  **Failover-friendly  databases:**  The app  uses  stable,  “always-on” connection  names.  When  Azure flips  to  the  backup database,  the  app  keeps working  without  code  changes.
+-  **Automation  (Terraform  and pipelines):**  Ensures  the  setup is  consistent,  reduces  human error,  and  makes  it easy  to  rebuild  or extend.
+ 
+ ---
+ 
+#  What  you’ll  show in  a  demo
+ 
+-  **Step  1:  Normal traffic.**  Open  the  Front Door  URL.  Show  the catalog  list  and  create an  order.  Explain  that this  uses  the  primary region.
+ -  **Step  2: Simulate  an  outage.**  Temporarily scale  down  the  “gateway” component  in  the  primary region  (think  of  this as  closing  the  local door).  Front  Door  detects the  issue  and  switches traffic  to  the  secondary region  automatically.
+ -  **Step 3:  Keep  serving  customers.** Repeat  the  catalog  and order  actions.  They  still work.  Point  out  that orders  are  still  written because  the  SQL  connection name  automatically  points  to the  healthy  region.
+ - **Step  4:  Restore  service.** Scale  the  gateway  back up  in  the  primary region.  Show  that  traffic can  return  as  both regions  are  healthy.
+ 
+This  demo  helps  a non-technical  audience  understand:  “We practiced  a  failure,  and customers  could  still  shop.”
+
+ ---
+ 
+ # What’s  inside  the  zipped repository
+ 
+ -  **README:** Plain-language  instructions  to  build the  cloud  environment,  deploy the  app,  set  secrets, and  run  the  demo.
+-  **Docs:**  Short  explanations of  the  disaster  recovery design  and  the  step-by-step runbooks  for  switching  databases and  testing  traffic  failover.
+-  **Terraform  (infra  code):** Files  that  create:
+    -  Resource  groups in  both  regions
+    -  AKS  clusters
+    -  App gateways  with  WAF
+    -  Azure  Front Door
+     - Azure  SQL  servers  and a  Failover  Group
+    -  Cosmos  DB with  two  regions  and automatic  failover
+    -  Container  registries  to store  app  images
+ - **App  code  (microservices):**  Simple, clear  services:
+    -  Orders  service:  uses SQL  to  store  purchases
+    -  Catalog service:  uses  Cosmos  to store  product  items
+    -  Gateway  service: a  small  web  server that  routes  requests  to orders  and  catalog
+ - **Kubernetes  manifests:**  Descriptions  of how  the  app  runs in  each  region  (how many  copies,  health  checks, and  routing).
+ -  **Pipelines:** Steps  to  build  container images  and  deploy  to both  regions,  with  health verification.
+ 
+ If  you want,  I  can  tailor the  language  in  your README  to  your  audience (executives,  customers,  or  hiring panel)  and  add  a one-page  “talk  track”  you can  use  while  presenting.
