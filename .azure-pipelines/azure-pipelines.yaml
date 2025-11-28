@@ -1,0 +1,106 @@
+trigger:
+   branches:
+       include:  [  main ]
+pr:
+    branches:
+       include: [  '*'  ]
+
+variables:
+   -  name:  ACR_PRIMARY
+       value: '$(acrPrimary)'
+    -  name: ACR_SECONDARY
+       value:  '$(acrSecondary)'
+    - name:  AKS_RG_PRIMARY
+       value:  '$(aksRgPrimary)'
+   -  name:  AKS_NAME_PRIMARY
+       value:  '$(aksNamePrimary)'
+   -  name:  AKS_RG_SECONDARY
+       value:  '$(aksRgSecondary)'
+   -  name:  AKS_NAME_SECONDARY
+       value: '$(aksNameSecondary)'
+    -  name: serviceConnection
+       value:  '$(azureServiceConnection)'
+
+stages:
+   -  stage:  Build
+       jobs:
+          -  job:  BuildAndPushBoth
+              pool:
+                  vmImage:  'ubuntu-latest'
+              steps:
+                  -  checkout: self
+                  -  task:  AzureCLI@2
+                     inputs:
+                         azureSubscription:  '$(serviceConnection)'
+                         scriptType:  bash
+                         scriptLocation:  inlineScript
+                         inlineScript: |
+                             set  -e
+                            az  acr  login  --name  $(ACR_PRIMARY)
+                            az  acr  login  --name $(ACR_SECONDARY)
+                             docker  build  -t $(ACR_PRIMARY).azurecr.io/orders:$(Build.BuildId)  src/services/orders
+                             docker  build -t  $(ACR_PRIMARY).azurecr.io/catalog:$(Build.BuildId)  src/services/catalog
+                             docker build  -t  $(ACR_PRIMARY).azurecr.io/gateway:$(Build.BuildId)  src/services/gateway
+                            docker  tag  $(ACR_PRIMARY).azurecr.io/orders:$(Build.BuildId)  $(ACR_SECONDARY).azurecr.io/orders:$(Build.BuildId)
+                            docker  tag  $(ACR_PRIMARY).azurecr.io/catalog:$(Build.BuildId)  $(ACR_SECONDARY).azurecr.io/catalog:$(Build.BuildId)
+                            docker  tag  $(ACR_PRIMARY).azurecr.io/gateway:$(Build.BuildId)  $(ACR_SECONDARY).azurecr.io/gateway:$(Build.BuildId)
+                            docker  push  $(ACR_PRIMARY).azurecr.io/orders:$(Build.BuildId)
+                             docker push  $(ACR_PRIMARY).azurecr.io/catalog:$(Build.BuildId)
+                             docker  push $(ACR_PRIMARY).azurecr.io/gateway:$(Build.BuildId)
+                             docker  push  $(ACR_SECONDARY).azurecr.io/orders:$(Build.BuildId)
+                            docker  push  $(ACR_SECONDARY).azurecr.io/catalog:$(Build.BuildId)
+                            docker  push  $(ACR_SECONDARY).azurecr.io/gateway:$(Build.BuildId)
+                  -  publish: src/k8s
+                      artifact:  manifests
+
+    -  stage: DeployPrimary
+       dependsOn:  Build
+       jobs:
+           -  deployment: AKSPrimary
+               environment: 'archdr-primary'
+               strategy:
+                 runOnce:
+                      deploy:
+                         steps:
+                            -  download:  current
+                                artifact:  manifests
+                             - task:  AzureCLI@2
+                                inputs:
+                                    azureSubscription:  '$(serviceConnection)'
+                                    scriptType:  bash
+                                   scriptLocation:  inlineScript
+                                    inlineScript:  |
+                                       az  aks  get-credentials  -g $(AKS_RG_PRIMARY)  -n  $(AKS_NAME_PRIMARY)  --overwrite-existing
+                                       kubectl  apply  -f  $(Pipeline.Workspace)/manifests/common/namespace.yaml
+                                       sed  -i  "s|<ACR_NAME>|$(ACR_PRIMARY)|g" $(Pipeline.Workspace)/manifests/common/*.yaml
+                                        kubectl  apply -f  $(Pipeline.Workspace)/manifests/common
+                                        kubectl apply  -f  $(Pipeline.Workspace)/manifests/weu/ingress.yaml
+                                       kubectl  rollout  status  deploy/orders  -n archref
+                                        kubectl  rollout status  deploy/catalog  -n  archref
+                                       kubectl  rollout  status  deploy/gateway -n  archref
+
+   -  stage:  DeploySecondary
+       dependsOn:  Build
+       jobs:
+          -  deployment:  AKSSecondary
+              environment:  'archdr-secondary'
+              strategy:
+                  runOnce:
+                     deploy:
+                         steps:
+                             -  download:  current
+                                artifact:  manifests
+                            -  task:  AzureCLI@2
+                                inputs:
+                                    azureSubscription:  '$(serviceConnection)'
+                                   scriptType:  bash
+                                    scriptLocation:  inlineScript
+                                    inlineScript: |
+                                        az  aks get-credentials  -g  $(AKS_RG_SECONDARY)  -n  $(AKS_NAME_SECONDARY) --overwrite-existing
+                                        kubectl  apply -f  $(Pipeline.Workspace)/manifests/common/namespace.yaml
+                                        sed -i  "s|<ACR_NAME>|$(ACR_SECONDARY)|g"  $(Pipeline.Workspace)/manifests/common/*.yaml
+                                       kubectl  apply  -f  $(Pipeline.Workspace)/manifests/common
+                                       kubectl  apply  -f  $(Pipeline.Workspace)/manifests/neu/ingress.yaml
+                                       kubectl  rollout  status deploy/orders  -n  archref
+                                       kubectl  rollout  status  deploy/catalog  -n archref
+                                        kubectl  rollout status  deploy/gateway  -n  archref
