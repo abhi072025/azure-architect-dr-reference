@@ -1,0 +1,11 @@
+output  "resource_group_primary"  { value  =  azurerm_resource_group.rg.name  }
+output "resource_group_secondary"  {  value  =  azurerm_resource_group.rg_dr.name }
+output  "aks_primary"  {  value =  azurerm_kubernetes_cluster.aks.name  }
+output  "aks_secondary" {  value  =  azurerm_kubernetes_cluster.aks_dr.name  }
+output  "acr_primary"  {  value  = azurerm_container_registry.acr.name  }
+output  "acr_secondary"  { value  =  azurerm_container_registry.acr_dr.name  }
+output "agw_primary_ip"  {  value  =  azurerm_public_ip.agw_pip.ip_address }
+output  "agw_secondary_ip"  {  value =  azurerm_public_ip.agw_dr_pip.ip_address  }
+output  "sql_failover_readwrite_dns" {  value  =  azurerm_mssql_failover_group.fog.read_write_endpoint  }
+output  "sql_failover_readonly_dns"    {  value =  azurerm_mssql_failover_group.fog.read_only_endpoint  }
+output  "frontdoor_hostname" {  value  =  azurerm_frontdoor_frontend_endpoint.fd_fe.host_name  }
